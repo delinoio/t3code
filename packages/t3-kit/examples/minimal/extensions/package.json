@@ -1,0 +1,17 @@
+{
+  "name": "t3-example-extensions",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@SCOPE/t3-extension-sdk": "VERSION"
+  },
+  "devDependencies": {
+    "@types/react": "~19.3.0"
+  },
+  "peerDependencies": {
+    "react": "19.3.0",
+    "react-native": "0.88.0"
+  }
+}

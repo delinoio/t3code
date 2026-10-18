@@ -12,11 +12,15 @@ import * as Scope from "effect/Scope";
 
 import * as Electron from "electron";
 
+declare const __T3CODE_PRODUCT_SCHEME__: string;
+
 export const DESKTOP_HOST = "app";
 const DESKTOP_PRODUCTION_SCHEME = "t3code";
 const DESKTOP_DEVELOPMENT_SCHEME = "t3code-dev";
 
 export function getDesktopScheme(isDevelopment: boolean): string {
+  if (typeof __T3CODE_PRODUCT_SCHEME__ !== "undefined" && __T3CODE_PRODUCT_SCHEME__)
+    return __T3CODE_PRODUCT_SCHEME__;
   return isDevelopment ? DESKTOP_DEVELOPMENT_SCHEME : DESKTOP_PRODUCTION_SCHEME;
 }
 

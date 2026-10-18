@@ -1,0 +1,32 @@
+{
+  "name": "@t3tools/t3-extension-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./web": "./src/react.ts",
+    "./native": "./src/react.ts",
+    "./service": "./src/service.ts",
+    "./host": "./src/host.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc-rs --noEmit",
+    "test": "vp test run --config ../../vite.config.ts --dir ."
+  },
+  "dependencies": {
+    "@t3tools/client-runtime": "workspace:*",
+    "@t3tools/contracts": "workspace:*",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "~19.3.0",
+    "typescript": "~6.0.3",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  }
+}

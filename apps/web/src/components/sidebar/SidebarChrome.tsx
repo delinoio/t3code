@@ -1,3 +1,5 @@
+import { extensions } from "../../extensions/registry";
+import { ExtensionMenu } from "../../extensions/ExtensionMenu";
 import { ArrowLeftIcon, ChartNoAxesColumnIcon, SettingsIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { memo } from "react";
@@ -145,7 +147,11 @@ function SidebarUtilityItem({
       <Tooltip>
         <TooltipTrigger
           render={
-            <SidebarMenuButton aria-label={label} onClick={onClick} size="icon">
+            <SidebarMenuButton
+              aria-label={label}
+              onClick={onClick}
+              size={extensions.length ? "icon-lg" : "icon"}
+            >
               {icon}
             </SidebarMenuButton>
           }
@@ -221,6 +227,7 @@ export const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
             label="Usage"
             onClick={handleUsageClick}
           />
+          <ExtensionMenu />
         </>
       )}
       <SidebarUpdatePill />

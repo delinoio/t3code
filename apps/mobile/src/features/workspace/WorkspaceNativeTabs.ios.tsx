@@ -1,3 +1,4 @@
+import { phoneDestinations, workspaceDestinations } from "../../extensions/registry";
 import { useDeviceType, useNativeLayoutMetrics } from "../../native/native-layout-metrics";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Keyboard, Platform, View, type NativeSyntheticEvent } from "react-native";
@@ -59,10 +60,14 @@ export function WorkspaceNativeTabs(props: {
     (metrics?.verticalBarEdge ?? "none") === "none";
   const [provenance, setProvenance] = useState(0);
   const systemTabBar = useSystemWorkspaceTabBar();
+  const destinations = phoneBar ? phoneDestinations : workspaceDestinations;
   const selectedTab = workspace.state.selectedTab;
+  const nativeSelectedTab = destinations.some((item) => item.id === selectedTab)
+    ? selectedTab
+    : "extension:more";
   const request = useMemo(
-    () => ({ selectedScreenKey: selectedTab, baseProvenance: provenance }),
-    [selectedTab, provenance],
+    () => ({ selectedScreenKey: nativeSelectedTab, baseProvenance: provenance }),
+    [nativeSelectedTab, provenance],
   );
   return (
     <View style={{ flex: 1 }}>
@@ -81,8 +86,9 @@ export function WorkspaceNativeTabs(props: {
           setProvenance(nativeEvent.provenance);
         }}
         onTabSelected={({ nativeEvent }: NativeSyntheticEvent<TabSelectedEvent>) => {
-          const tab = nativeEvent.selectedScreenKey;
-          if (tab !== "threads" && tab !== "pullRequests") return;
+          const item = destinations.find((item) => item.id === nativeEvent.selectedScreenKey);
+          if (!item) return;
+          const tab = item.id;
           setProvenance(nativeEvent.provenance);
           if (nativeEvent.actionOrigin === "programmatic-js" || tab === selectedTab) return;
           Keyboard.dismiss();
@@ -90,23 +96,26 @@ export function WorkspaceNativeTabs(props: {
           workspace.dispatch({ type: "select", tab });
         }}
       >
-        {(["threads", "pullRequests"] as const).map((tab: WorkspaceTab) => (
+        {destinations.map(({ id: tab, label, icon }) => (
           <Tabs.Screen
             key={tab}
             screenKey={tab}
-            title={tab === "threads" ? "Threads" : "Pulls"}
-            tabBarItemAccessibilityLabel={tab === "threads" ? "Threads" : "Pull requests"}
+            title={tab === "pullRequests" ? "Pulls" : label}
+            tabBarItemAccessibilityLabel={label}
             ios={{
               icon:
-                tab === "threads"
-                  ? { type: "sfSymbol", name: "text.bubble" }
-                  : { type: "templateSource", templateSource: PULL_REQUEST_ICON },
+                tab === "pullRequests"
+                  ? { type: "templateSource", templateSource: PULL_REQUEST_ICON }
+                  : { type: "sfSymbol", name: icon },
               selectedIcon:
                 tab === "threads" ? { type: "sfSymbol", name: "text.bubble.fill" } : undefined,
               overrideScrollViewContentInsetAdjustmentBehavior: false,
             }}
           >
-            <RetainedWorkspaceTab tab={tab} active={selectedTab === tab}>
+            <RetainedWorkspaceTab
+              tab={nativeSelectedTab === tab ? selectedTab : tab}
+              active={nativeSelectedTab === tab}
+            >
               {props.children}
             </RetainedWorkspaceTab>
           </Tabs.Screen>

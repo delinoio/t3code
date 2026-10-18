@@ -1,3 +1,4 @@
+import { loadProductBuildConfig } from "../../scripts/lib/product-config.ts";
 import type { ExpoConfig } from "expo/config";
 
 import { BRAND_ASSET_PATHS } from "../../scripts/lib/brand-assets.ts";
@@ -69,6 +70,8 @@ const RELEASE_ASSETS = {
   androidNotificationColor: "#FFFFFF",
 } as const;
 
+const product = loadProductBuildConfig();
+
 const VARIANT_CONFIG = {
   development: {
     appName: "T3 Code Dev",
@@ -107,7 +110,16 @@ function resolveAppVariant(value: string | undefined): AppVariant {
   }
 }
 
-const variant = VARIANT_CONFIG[APP_VARIANT];
+const baseVariant = VARIANT_CONFIG[APP_VARIANT];
+const variant = product
+  ? {
+      ...baseVariant,
+      appName: product.name,
+      scheme: product.scheme,
+      iosBundleIdentifier: product.iosBundleIdentifier,
+      androidPackage: product.androidApplicationId,
+    }
+  : baseVariant;
 const iosBundleIdentifier = isIosPersonalTeamBuild
   ? personalTeamBundleIdentifier!
   : variant.iosBundleIdentifier;
@@ -234,27 +246,36 @@ const config: ExpoConfig = {
     policy: runtimeVersionPolicy,
   },
   orientation: "portrait",
-  icon: variant.assets.appIcon,
+  icon: product?.assets?.icon ?? variant.assets.appIcon,
   userInterfaceStyle: "automatic",
   updates: {
-    enabled: repoEnv.T3CODE_MOBILE_UPDATES_ENABLED !== "0",
-    url: "https://u.expo.dev/d763fcb8-d37c-41ea-a773-b54a0ab4a454",
+    enabled: product
+      ? Boolean(product.expo?.updatesUrl)
+      : repoEnv.T3CODE_MOBILE_UPDATES_ENABLED !== "0",
+    ...(product
+      ? product.expo?.updatesUrl
+        ? { url: product.expo.updatesUrl }
+        : {}
+      : { url: "https://u.expo.dev/d763fcb8-d37c-41ea-a773-b54a0ab4a454" }),
     checkAutomatically: "ON_LOAD",
     fallbackToCacheTimeout: 0,
   },
   ios: {
-    icon: variant.assets.iosIcon,
+    icon: product?.assets?.icon ?? variant.assets.iosIcon,
     supportsTablet: true,
     requireFullScreen: process.env.T3_SHOWCASE_CAPTURE_BUILD === "1",
     bundleIdentifier: iosBundleIdentifier,
     // Pin code signing to the T3 Tools team so non-interactive `expo run:ios`
     // does not fall back to a personal team (which cannot sign app groups,
     // Sign in with Apple, or push notification entitlements).
-    appleTeamId: "ARK85ZXQ4Z",
-    associatedDomains: [
-      `applinks:${variant.relyingParty}`,
-      `webcredentials:${variant.relyingParty}`,
-    ],
+    ...(product
+      ? product.ios?.appleTeamId
+        ? { appleTeamId: product.ios.appleTeamId }
+        : {}
+      : { appleTeamId: "ARK85ZXQ4Z" }),
+    associatedDomains: product
+      ? (product.ios?.associatedDomains ?? [])
+      : [`applinks:${variant.relyingParty}`, `webcredentials:${variant.relyingParty}`],
     entitlements: {
       "keychain-access-groups": [`$(AppIdentifierPrefix)${variant.iosBundleIdentifier}`],
     },
@@ -292,7 +313,7 @@ const config: ExpoConfig = {
     },
   },
   android: {
-    icon: variant.assets.appIcon,
+    icon: product?.assets?.icon ?? variant.assets.appIcon,
     package: variant.androidPackage,
     ...(repoEnv.T3CODE_ANDROID_GOOGLE_SERVICES_FILE
       ? { googleServicesFile: repoEnv.T3CODE_ANDROID_GOOGLE_SERVICES_FILE }
@@ -313,7 +334,7 @@ const config: ExpoConfig = {
     blockedPermissions: ["android.permission.ACTIVITY_RECOGNITION"],
   },
   web: {
-    favicon: variant.assets.appIcon,
+    favicon: product?.assets?.icon ?? variant.assets.appIcon,
   },
   plugins: [
     "expo-asset",
@@ -484,11 +505,13 @@ const config: ExpoConfig = {
       tracesDataset: repoEnv.EXPO_PUBLIC_OTLP_TRACES_DATASET ?? null,
       tracesToken: repoEnv.EXPO_PUBLIC_OTLP_TRACES_TOKEN ?? null,
     },
-    eas: {
-      projectId: "d763fcb8-d37c-41ea-a773-b54a0ab4a454",
-    },
+    ...(product
+      ? product.expo
+        ? { eas: { projectId: product.expo.projectId } }
+        : {}
+      : { eas: { projectId: "d763fcb8-d37c-41ea-a773-b54a0ab4a454" } }),
   },
-  owner: "pingdotgg",
+  ...(product ? (product.expo ? { owner: product.expo.owner } : {}) : { owner: "pingdotgg" }),
 };
 
 export default config;

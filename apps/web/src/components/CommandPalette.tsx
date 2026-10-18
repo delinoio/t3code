@@ -1,5 +1,9 @@
 "use client";
 
+import { useOpenExtension } from "../extensions/navigation";
+import { extensions } from "../extensions/registry";
+import { ExtensionIcon } from "../extensions/ExtensionIcon";
+
 import { threadPullRequestLinkMode } from "@t3tools/client-runtime/thread-pull-request-compatibility";
 import { visibleThreadPullRequests } from "@t3tools/shared/threadPullRequests";
 
@@ -713,6 +717,7 @@ function OpenCommandPaletteDialog(props: {
   readonly clearOpenIntent: () => void;
 }) {
   const navigate = useNavigate();
+  const openExtension = useOpenExtension();
   const pathname = useLocation({ select: (location) => location.pathname });
   const { clearOpenIntent, openIntent, openOverlayMode, setOpen } = props;
   const [query, setQuery] = useState(openIntent?.kind === "search" ? openIntent.query : "");
@@ -2073,6 +2078,19 @@ function OpenCommandPaletteDialog(props: {
       await navigate({ to: "/settings" });
     },
   });
+
+  for (const extension of extensions) {
+    actionItems.push({
+      kind: "action",
+      value: `extension:${extension.id}`,
+      searchTerms: [extension.title, "extensions"],
+      title: `Open ${extension.title}`,
+      icon: <ExtensionIcon icon={extension.icon} />,
+      run: async () => {
+        await openExtension(extension.id);
+      },
+    });
+  }
 
   const contextualProjectGroup =
     (contextualProjectRef

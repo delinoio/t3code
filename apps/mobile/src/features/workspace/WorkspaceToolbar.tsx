@@ -1,3 +1,5 @@
+import { getWorkspaceTabState } from "./workspace-tabs-state";
+import { workspaceDestinations } from "../../extensions/registry";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import {
@@ -19,12 +21,9 @@ import { GlassSurface } from "../../components/ui/GlassSurface";
 import { useHardwareKeyboardCommand } from "../keyboard/hardwareKeyboardCommands";
 import { WorkspaceDock } from "./WorkspaceDock";
 import { useWorkspaceTabs } from "./WorkspaceTabsContext";
-import { WORKSPACE_TOOLBAR, type WorkspaceTab } from "./workspace-tabs-state";
+import { WORKSPACE_TOOLBAR } from "./workspace-tabs-state";
 
-const TABS: ReadonlyArray<{ id: WorkspaceTab; label: string; icon: AppSymbolName }> = [
-  { id: "threads", label: "Threads", icon: "text.bubble" },
-  { id: "pullRequests", label: "PRs", icon: "arrow.triangle.pull" },
-];
+const TABS = workspaceDestinations;
 
 function ToolbarButton(props: {
   label: string;
@@ -77,12 +76,15 @@ export function WorkspaceToolbar(props: {
     if (workspace)
       workspace.recordScrollOffset(
         workspace.state.selectedTab,
-        workspace.state.tabs[workspace.state.selectedTab].searchEntryOffset,
+        getWorkspaceTabState(workspace.state, workspace.state.selectedTab).searchEntryOffset,
       );
     workspace?.dispatch({ type: "cancel" });
   }, [workspace]);
   const handleBack = useEffectEvent(() => {
-    if (!workspace || workspace.state.tabs[workspace.state.selectedTab].searchMode === "resting")
+    if (
+      !workspace ||
+      getWorkspaceTabState(workspace.state, workspace.state.selectedTab).searchMode === "resting"
+    )
       return false;
     if (keyboardVisible) Keyboard.dismiss();
     else cancelSearch();
@@ -98,8 +100,11 @@ export function WorkspaceToolbar(props: {
   }, [focusRequest]);
   if (!workspace) return null;
   const { state, dispatch } = workspace;
-  const tab = state.tabs[state.selectedTab];
-  const activeTab = TABS.find((item) => item.id === state.selectedTab)!;
+  const tab = getWorkspaceTabState(state, state.selectedTab);
+  const activeTab = TABS.find((item) => item.id === state.selectedTab) ?? {
+    label: "More",
+    icon: "ellipsis" as const,
+  };
   const searching = tab.searchMode !== "resting";
   const expanded = tab.searchMode === "expanded" && !keyboardVisible;
   const showNavigation = !searching || expanded;

@@ -1,0 +1,16 @@
+{
+  "name": "@t3tools/t3-kit",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "bin": {
+    "t3-kit": "./src/cli.mjs"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/product.mjs"
+  },
+  "engines": {
+    "node": ">=24.13.1"
+  }
+}

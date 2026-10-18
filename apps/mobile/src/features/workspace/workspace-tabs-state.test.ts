@@ -75,3 +75,26 @@ describe("workspace root navigation", () => {
     expect(workspaceTabsReducer(state, { type: "select", tab: "pullRequests" })).toBe(state);
   });
 });
+
+it("retains thread and pull request search and scroll state through extension navigation", () => {
+  let state = initialWorkspaceTabsState();
+  state = workspaceTabsReducer(state, {
+    type: "query",
+    tab: "threads",
+    query: "keep thread search",
+  });
+  state = workspaceTabsReducer(state, { type: "scroll", tab: "threads", offset: 420 });
+  state = workspaceTabsReducer(state, {
+    type: "query",
+    tab: "pullRequests",
+    query: "keep PR search",
+  });
+  state = workspaceTabsReducer(state, { type: "scroll", tab: "pullRequests", offset: 280 });
+  const threads = state.tabs.threads;
+  const pulls = state.tabs.pullRequests;
+  state = workspaceTabsReducer(state, { type: "select", tab: "extension:measurements" });
+  state = workspaceTabsReducer(state, { type: "select", tab: "extension:more" });
+  state = workspaceTabsReducer(state, { type: "select", tab: "threads" });
+  expect(state.tabs.threads).toBe(threads);
+  expect(state.tabs.pullRequests).toBe(pulls);
+});

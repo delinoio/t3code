@@ -39,6 +39,7 @@ class T3WorkspaceNavigationModule : Module() {
       Prop("selectedTab") { view: T3WorkspaceNavigationView, value: String ->
         view.selectedTab = value
       }
+      Prop("tabs") { view: T3WorkspaceNavigationView, value: List<Map<String, String>> -> view.tabs = value }
       Prop("rail") { view: T3WorkspaceNavigationView, value: Boolean -> view.rail = value }
       Prop("dark") { view: T3WorkspaceNavigationView, value: Boolean -> view.dark = value }
       Prop("textScale") { view: T3WorkspaceNavigationView, value: Float -> view.textScale = value }
@@ -69,6 +70,7 @@ class T3WorkspaceNavigationView(
 
   private val onTabSelected by EventDispatcher()
   var selectedTab by mutableStateOf("threads")
+  var tabs by mutableStateOf(listOf(mapOf("id" to "threads", "label" to "Chats"), mapOf("id" to "pullRequests", "label" to "Pull requests")))
   var rail by mutableStateOf(false)
   var dark by mutableStateOf(false)
   var textScale by mutableStateOf(1f)
@@ -107,7 +109,7 @@ class T3WorkspaceNavigationView(
         )
         setContent {
           MaterialTheme(colorScheme = if (dark) darkColorScheme() else lightColorScheme()) {
-            val tabs = listOf("threads", "pullRequests")
+            val tabIds = tabs.mapNotNull { it["id"] }
             if (rail) {
               NavigationRail(
                 modifier = Modifier.fillMaxSize(),
@@ -115,13 +117,15 @@ class T3WorkspaceNavigationView(
                 windowInsets = WindowInsets(0),
               ) {
                 Spacer(Modifier.weight(1f))
-                tabs.forEach { tab ->
+                tabIds.forEach { tab ->
                   NavigationRailItem(
                     selected = selectedTab == tab,
                     onClick = { onTabSelected(mapOf("tab" to tab)) },
                     icon = { tabIcon(tab) },
                     label = {
-                      val title = if (tab == "threads") "Chats" else "PRs"
+                      val title = if (tabs.size == 2) {
+                        if (tab == "threads") "Chats" else "PRs"
+                      } else tabs.firstOrNull { it["id"] == tab }?.get("label") ?: tab
                       Text(title, fontSize = (12 * textScale).sp)
                     },
                     colors = NavigationRailItemDefaults.colors(
@@ -142,13 +146,14 @@ class T3WorkspaceNavigationView(
                 tonalElevation = androidx.compose.ui.unit.Dp(0f),
                 windowInsets = WindowInsets(0),
               ) {
-                tabs.forEach { tab ->
+                tabIds.forEach { tab ->
                   NavigationBarItem(
                     selected = selectedTab == tab,
                     onClick = { onTabSelected(mapOf("tab" to tab)) },
                     icon = { tabIcon(tab) },
                     label = {
-                      val title = if (tab == "threads") "Chats" else "Pull requests"
+                      val title = if (tabs.size == 2 && tab == "threads") "Chats"
+                        else tabs.firstOrNull { it["id"] == tab }?.get("label") ?: tab
                       Text(title, fontSize = (12 * textScale).sp)
                     },
                     colors = NavigationBarItemDefaults.colors(
@@ -171,14 +176,20 @@ class T3WorkspaceNavigationView(
 
   @Composable
   private fun tabIcon(tab: String) {
-    val drawable = if (tab == "threads") {
-      R.drawable.t3_chats
-    } else {
-      R.drawable.t3_pull_requests
+    val icon = tabs.firstOrNull { it["id"] == tab }?.get("icon")
+    val drawable = when {
+      tab == "threads" -> R.drawable.t3_chats
+      tab == "pullRequests" -> R.drawable.t3_pull_requests
+      tab == "extension:more" -> R.drawable.t3_extension_more
+      icon == "circle.inset.filled" -> R.drawable.t3_extension_issue
+      icon == "chart.bar.xaxis" -> R.drawable.t3_extension_activity
+      icon == "gearshape" -> R.drawable.t3_extension_settings
+      else -> R.drawable.t3_extension_workflow
     }
     Icon(
       painter = painterResource(drawable),
-      contentDescription = if (tab == "threads") "Chats" else "Pull requests",
+      contentDescription = if (tabs.size == 2 && tab == "threads") "Chats"
+        else tabs.firstOrNull { it["id"] == tab }?.get("label") ?: tab,
     )
   }
 }

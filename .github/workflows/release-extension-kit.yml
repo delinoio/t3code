@@ -1,0 +1,107 @@
+name: Extension kit release
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: Public npm scope including @
+        required: true
+        type: string
+      version:
+        description: Exact 0.x version shared by both packages
+        required: true
+        type: string
+      upstream_sha:
+        description: Full upstream base commit SHA
+        required: true
+        type: string
+      publish:
+        description: Publish validated packages with the next tag
+        default: false
+        type: boolean
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-ci-deps
+      - name: Focused tests
+        run: |
+          node --test packages/t3-kit/src/workspace.test.mjs
+          vp test run packages/t3-extension-sdk/src/index.test.ts packages/t3-extension-sdk/src/service.test.ts packages/t3-extension-sdk/src/operations.test.ts apps/server/src/provider/extensionInstanceForwarding.test.ts apps/mobile/src/features/workspace/workspace-tabs-state.test.ts apps/mobile/src/extensions/registry.test.ts
+      - name: Stage public packages
+        env:
+          NPM_SCOPE: ${{ inputs.scope }}
+          KIT_VERSION: ${{ inputs.version }}
+          UPSTREAM_SHA: ${{ inputs.upstream_sha }}
+        run: |
+          node scripts/package-extension-kit.mjs "$NPM_SCOPE" "$KIT_VERSION" "$UPSTREAM_SHA" "$RUNNER_TEMP/staged"
+          mkdir "$RUNNER_TEMP/tarballs"
+          npm pack "$RUNNER_TEMP/staged/t3-kit" --pack-destination "$RUNNER_TEMP/tarballs"
+          npm pack "$RUNNER_TEMP/staged/t3-extension-sdk" --pack-destination "$RUNNER_TEMP/tarballs"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extension-tarballs
+          path: ${{ runner.temp }}/tarballs/*.tgz
+  consumer:
+    needs: package
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: web
+            os: ubuntu-latest
+          - target: server
+            os: ubuntu-latest
+          - target: desktop
+            os: macos-26
+          - target: ios
+            os: macos-26
+          - target: android
+            os: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version-file: package.json
+          run-install: false
+      - uses: actions/setup-java@v5
+        if: matrix.target == 'android'
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+        if: matrix.target == 'android'
+      - uses: actions/download-artifact@v4
+        with:
+          name: extension-tarballs
+          path: ${{ runner.temp }}/tarballs
+      - name: Build outside the checkout
+        env:
+          TARGET: ${{ matrix.target }}
+          CI: "true"
+        run: node scripts/test-extension-consumer.mjs "$RUNNER_TEMP/tarballs" "$TARGET"
+  publish:
+    if: inputs.publish
+    needs: consumer
+    runs-on: ubuntu-latest
+    environment: npm-extension-kit
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@v4
+        with:
+          name: extension-tarballs
+          path: tarballs
+      - name: Publish only the two validated artifacts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for package in tarballs/*.tgz; do
+            npm publish "$package" --access public --tag next
+          done

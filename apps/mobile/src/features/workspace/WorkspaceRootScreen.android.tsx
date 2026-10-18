@@ -1,3 +1,4 @@
+import { ExtensionScreen } from "../../extensions/ExtensionScreen";
 import { useMemo } from "react";
 import { View } from "react-native";
 import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -25,6 +26,15 @@ export function WorkspaceRootScreen() {
     }),
     [workspace, fabClearance],
   );
+
+  if (workspace.state.selectedTab.startsWith("extension:")) {
+    return (
+      <View className="flex-1">
+        <ExtensionScreen tab={workspace.state.selectedTab} />
+        {!layout.usesSplitView ? <AndroidWorkspaceNavigation /> : null}
+      </View>
+    );
+  }
 
   if (layout.usesSplitView) {
     return workspace.state.selectedTab === "threads" ? (

@@ -1,4 +1,5 @@
-export type WorkspaceTab = "threads" | "pullRequests";
+import { extensionTabs, type ExtensionTab } from "../../extensions/registry";
+export type WorkspaceTab = "threads" | "pullRequests" | ExtensionTab;
 export type WorkspaceSearchMode = "resting" | "active" | "expanded";
 
 export interface WorkspaceTabState {
@@ -22,7 +23,12 @@ export function initialWorkspaceTabsState(): WorkspaceTabsState {
   return {
     selectedTab: "threads",
     selectionRevision: 0,
-    tabs: { threads: emptyTab(), pullRequests: emptyTab() },
+    tabs: {
+      threads: emptyTab(),
+      pullRequests: emptyTab(),
+      ...Object.fromEntries(extensionTabs.map(({ id }) => [id, emptyTab()])),
+      "extension:more": emptyTab(),
+    },
   };
 }
 
@@ -44,10 +50,11 @@ export function workspaceTabsReducer(
       : {
           ...state,
           selectedTab: action.tab,
+          tabs: state.tabs[action.tab] ? state.tabs : { ...state.tabs, [action.tab]: emptyTab() },
           selectionRevision: state.selectionRevision + 1,
         };
   const tab = action.tab ?? state.selectedTab;
-  const current = state.tabs[tab];
+  const current = getWorkspaceTabState(state, tab);
   let next: WorkspaceTabState;
   switch (action.type) {
     case "search":
@@ -88,4 +95,11 @@ export function workspaceToolbarHeight(mode: WorkspaceSearchMode): number {
   return mode === "expanded"
     ? WORKSPACE_TOOLBAR.height * 2 + WORKSPACE_TOOLBAR.expandedGap
     : WORKSPACE_TOOLBAR.height;
+}
+
+export function getWorkspaceTabState(
+  state: WorkspaceTabsState,
+  tab: WorkspaceTab,
+): WorkspaceTabState {
+  return state.tabs[tab] ?? emptyTab();
 }

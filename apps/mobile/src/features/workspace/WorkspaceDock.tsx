@@ -1,3 +1,5 @@
+import { AppText } from "../../components/ui/AppText";
+import { phoneDestinations } from "../../extensions/registry";
 import { Keyboard, Pressable, View } from "react-native";
 
 import { SymbolView } from "../../components/ui/AppSymbol";
@@ -14,22 +16,25 @@ export function WorkspaceDock(props: { readonly onNewTask: () => void }) {
     >
       <GlassSurface
         style={{
-          width: WORKSPACE_DOCK.tabsWidth,
+          width: Math.max(WORKSPACE_DOCK.tabsWidth, phoneDestinations.length * 52),
           height: WORKSPACE_DOCK.height,
           borderRadius: WORKSPACE_DOCK.height / 2,
         }}
       >
         <View className="flex-1 flex-row p-1" accessibilityRole="tablist">
-          {(["threads", "pullRequests"] as const).map((tab) => {
-            const selected = workspace.state.selectedTab === tab;
+          {phoneDestinations.map(({ id: tab, label, icon }) => {
+            const selected =
+              workspace.state.selectedTab === tab ||
+              (tab === "extension:more" &&
+                !phoneDestinations.some((item) => item.id === workspace.state.selectedTab));
             return (
               <Pressable
                 key={tab}
                 accessibilityRole="tab"
-                accessibilityLabel={tab === "threads" ? "Threads" : "Pull requests"}
+                accessibilityLabel={label}
                 accessibilityState={{ selected }}
                 onPress={() => {
-                  if (selected) return;
+                  if (workspace.state.selectedTab === tab) return;
                   Keyboard.dismiss();
                   workspace.dispatch({ type: "select", tab });
                 }}
@@ -40,10 +45,15 @@ export function WorkspaceDock(props: { readonly onNewTask: () => void }) {
                 }
               >
                 <SymbolView
-                  name={tab === "threads" ? "text.bubble" : "arrow.triangle.pull"}
-                  size={23}
+                  name={icon}
+                  size={phoneDestinations.length > 2 ? 20 : 23}
                   tintColorClassName={selected ? "accent-focus" : "accent-icon"}
                 />
+                {phoneDestinations.length > 2 ? (
+                  <AppText className="text-xs" numberOfLines={1}>
+                    {tab === "pullRequests" ? "Pulls" : label}
+                  </AppText>
+                ) : null}
               </Pressable>
             );
           })}

@@ -1,3 +1,4 @@
+import { phoneDestinations, workspaceDestinations } from "../../extensions/registry";
 import { requireNativeView } from "expo";
 import { CommonActions, useNavigation } from "@react-navigation/native";
 import { androidWorkspaceNavigationState } from "../../lib/android-workspace-navigation";
@@ -20,6 +21,7 @@ import type { WorkspaceTab } from "./workspace-tabs-state";
 export const ANDROID_WORKSPACE_RAIL_WIDTH = 80;
 
 interface NativeNavigationProps extends ViewProps {
+  readonly tabs: ReadonlyArray<{ id: string; label: string; icon: string }>;
   readonly rail: boolean;
   readonly selectedTab: WorkspaceTab;
   readonly dark: boolean;
@@ -68,8 +70,13 @@ export function AndroidWorkspaceNavigation(props: {
       }}
     >
       <NativeNavigation
+        tabs={rail ? workspaceDestinations : phoneDestinations}
         rail={rail}
-        selectedTab={workspace.state.selectedTab}
+        selectedTab={
+          !rail && !phoneDestinations.some((tab) => tab.id === workspace.state.selectedTab)
+            ? "extension:more"
+            : workspace.state.selectedTab
+        }
         dark={themeAppearance === "dark"}
         textScale={scale}
         containerColor={nativeColor(containerColor)}

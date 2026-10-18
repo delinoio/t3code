@@ -1,3 +1,6 @@
+import { getWorkspaceTabState } from "./workspace-tabs-state";
+import { ExtensionScreen } from "../../extensions/ExtensionScreen";
+import { workspaceTitle } from "../../extensions/registry";
 import { useNavigation } from "@react-navigation/native";
 import { use, useCallback, useMemo } from "react";
 import { Platform, View, useWindowDimensions } from "react-native";
@@ -28,11 +31,6 @@ import { WORKSPACE_DOCK, workspaceToolbarHeight } from "./workspace-tabs-state";
 import { WorkspaceSidebarTabs } from "./WorkspaceSidebarTabs";
 import { useSidebarWorkspaceTabs, useSystemWorkspaceTabBar } from "./useSystemWorkspaceTabBar";
 
-const TAB_TITLES = {
-  threads: "Threads",
-  pullRequests: "Pull requests",
-};
-
 function WorkspaceRootTitle(props: {
   readonly maxWidth: number;
   readonly onOpenEnvironments: () => void;
@@ -42,7 +40,7 @@ function WorkspaceRootTitle(props: {
     <View style={{ width: props.maxWidth, minHeight: 32, justifyContent: "center" }}>
       <WorkspaceConnectionTitle
         brand={
-          <CompactBrandTitle accessibilityLabel={`T3 Code, ${TAB_TITLES[state.selectedTab]}`} />
+          <CompactBrandTitle accessibilityLabel={`T3 Code, ${workspaceTitle(state.selectedTab)}`} />
         }
         maxWidth={props.maxWidth}
         onPress={props.onOpenEnvironments}
@@ -86,7 +84,7 @@ function WorkspaceRootContent() {
     ),
     [width, navigation],
   );
-  const tab = state.tabs[state.selectedTab];
+  const tab = getWorkspaceTabState(state, state.selectedTab);
   const bottomClearance =
     Platform.OS === "ios"
       ? Math.max(insets.bottom, keyboardHeight) +
@@ -108,7 +106,7 @@ function WorkspaceRootContent() {
           <NativeStackScreenOptions
             optionsVersion={[state.selectedTab, state.selectionRevision, width, sidebarNavigation]}
             options={{
-              title: TAB_TITLES[state.selectedTab],
+              title: workspaceTitle(state.selectedTab),
               headerShown: true,
               unstable_headerLeftItems: () => [],
               headerTitle: renderHeaderTitle,
@@ -141,7 +139,13 @@ function WorkspaceRootContent() {
         )}
         {sidebarPicker ? <WorkspaceSidebarTabs /> : null}
         <SafeAreaInsetsContext value={sidebarPicker ? { ...insets, top: 0 } : insets}>
-          {state.selectedTab === "threads" ? <HomeRouteScreen /> : <PullRequestsScreen />}
+          {state.selectedTab === "threads" ? (
+            <HomeRouteScreen />
+          ) : state.selectedTab === "pullRequests" ? (
+            <PullRequestsScreen />
+          ) : (
+            <ExtensionScreen tab={state.selectedTab} />
+          )}
         </SafeAreaInsetsContext>
         <WorkspaceToolbar
           sidebar={sidebarNavigation}

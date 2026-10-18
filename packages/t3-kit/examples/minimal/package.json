@@ -1,0 +1,9 @@
+{
+  "name": "t3-consumer-example",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@SCOPE/t3-extension-sdk": "VERSION",
+    "@SCOPE/t3-kit": "VERSION"
+  }
+}

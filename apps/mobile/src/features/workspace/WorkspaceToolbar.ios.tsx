@@ -1,3 +1,5 @@
+import { getWorkspaceTabState } from "./workspace-tabs-state";
+import { extensionTabs } from "../../extensions/registry";
 import { Toolbar } from "../../components/ui/Toolbar";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { use, useCallback, useEffect, useRef } from "react";
@@ -38,7 +40,7 @@ export function WorkspaceToolbar(props: {
   const tabActive = use(NativeWorkspaceTabActivityContext)?.active ?? true;
   const { panes, togglePrimarySidebar } = useAdaptiveWorkspaceLayout();
   const searchRef = useRef<SearchBarCommands>(null);
-  const tab = workspace.state.tabs[workspace.state.selectedTab];
+  const tab = getWorkspaceTabState(workspace.state, workspace.state.selectedTab);
   const selectedTab = workspace.state.selectedTab;
   const enterSearch = useCallback(() => {
     workspace.dispatch({
@@ -50,7 +52,7 @@ export function WorkspaceToolbar(props: {
     if (props.sidebar && !panes.primarySidebarVisible) togglePrimarySidebar();
   }, [workspace, selectedTab, props.sidebar, panes.primarySidebarVisible, togglePrimarySidebar]);
   const focusSearch = useCallback(() => {
-    if (!workspace.isTabActive(selectedTab)) return false;
+    if (!workspace.isTabActive(selectedTab) || selectedTab.startsWith("extension:")) return false;
     if (!NATIVE_LIQUID_GLASS_SUPPORTED) enterSearch();
     searchRef.current?.focus();
     return true;
@@ -79,7 +81,8 @@ export function WorkspaceToolbar(props: {
           // Liquid Glass keeps search mounted as UIKit's own header button, which
           // morphs into the field; swapping a stacked bar in and out cannot animate.
           headerSearchBarOptions:
-            NATIVE_LIQUID_GLASS_SUPPORTED || tab.searchMode !== "resting"
+            !selectedTab.startsWith("extension:") &&
+            (NATIVE_LIQUID_GLASS_SUPPORTED || tab.searchMode !== "resting")
               ? {
                   ref: searchRef,
                   autoFocus: tab.searchMode === "active",
@@ -153,6 +156,18 @@ export function WorkspaceToolbar(props: {
             onPress={() => selectTab("pullRequests")}
           />
         ) : null}
+        {sidebarTabs === "toolbar"
+          ? extensionTabs.map((item) => (
+              <Toolbar.Button
+                key={item.id}
+                identifier={item.id}
+                accessibilityLabel={item.label}
+                icon={item.icon}
+                tintColor={selectedTab === item.id ? selectedTint : undefined}
+                onPress={() => selectTab(item.id)}
+              />
+            ))
+          : null}
         {nativeToolbarCompose ? <Toolbar.Spacer flexible /> : null}
         {nativeToolbarCompose ? (
           <Toolbar.Button

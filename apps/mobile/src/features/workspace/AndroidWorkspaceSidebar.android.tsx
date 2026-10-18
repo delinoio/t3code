@@ -1,3 +1,4 @@
+import { ExtensionScreen } from "../../extensions/ExtensionScreen";
 import { useMemo, type ReactNode } from "react";
 import { View } from "react-native";
 import { ScreenContent } from "../../components/ui/ScreenContent";
@@ -14,6 +15,8 @@ export function AndroidWorkspaceSidebar(props: {
   const context = useMemo(() => ({ ...workspace, bottomClearance: 16 }), [workspace]);
   return workspace.state.selectedTab === "threads" ? (
     props.children
+  ) : workspace.state.selectedTab.startsWith("extension:") ? (
+    <ExtensionScreen tab={workspace.state.selectedTab} />
   ) : (
     <WorkspaceTabsContext value={context}>
       <View className="flex-1 bg-header">
